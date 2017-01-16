@@ -61,7 +61,6 @@ object KamonSbtUmbrella extends AutoPlugin {
     ),
     publishTo := publishToSetting.value,
     publish := publishTask.value
-
   )
 
   private def scalaVersionSetting = Def.setting {
@@ -107,7 +106,7 @@ object KamonSbtUmbrella extends AutoPlugin {
         else Def.task {
           val log = sLog.value
           log.warn("You must run bintrayRelease once all artifacts are staged.")}
-      }
+      }.value
     } else publishSigned
   }
 
