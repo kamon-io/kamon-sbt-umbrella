@@ -60,9 +60,8 @@ object KamonSbtUmbrella extends AutoPlugin {
     javacOptions := Seq(
       "-Xlint:-options"
     ),
-    publishTo <<= publishToSetting
-    ,
-    publish <<= publishTask
+    publishTo := publishToSetting.value,
+    publish := publishTask.value
   )
 
   private def scalaVersionSetting = Def.setting {
@@ -94,23 +93,25 @@ object KamonSbtUmbrella extends AutoPlugin {
     Process("git status --porcelain").lines.size > 0
   }
 
-  def publishTask = Def.task[Unit] {
+  def publishTask = Def.taskDyn[Unit] {
     import bintray.BintrayKeys._
     import com.typesafe.sbt.pgp.PgpKeys._
-    
+
+
     if(isSnapshotVersion((version in ThisBuild).value)) {
       if(isWorkingDirectoryDirty)
         sys.error("Your working directory is dirty, please cleanup and commit your changes before publishing.")
 
-      Def.taskDyn {
+      Def.task {
         val ep = bintrayEnsureBintrayPackageExists.value
         val el = bintrayEnsureLicenses.value
         val _ = publish.value
         val isRelease = bintrayReleaseOnPublish.value
-        if (isRelease) bintrayRelease
+        if (isRelease) bintrayRelease.value
         else Def.task {
           val log = sLog.value
-          log.warn("You must run bintrayRelease once all artifacts are staged.")}
+          log.warn("You must run bintrayRelease once all artifacts are staged.")
+        }.value
       }
     } else publishSigned
   }
