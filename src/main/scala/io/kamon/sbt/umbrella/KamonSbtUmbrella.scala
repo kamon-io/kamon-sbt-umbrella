@@ -2,14 +2,14 @@ package io.kamon.sbt.umbrella
 
 import sbt._
 import Keys._
-import sbt.plugins.JvmPlugin
 import bintray.BintrayKeys.{bintray => bintrayScope}
+import bintray.BintrayPlugin
 import xerial.sbt.Sonatype.sonatypeSettings
 import xerial.sbt.Sonatype.SonatypeKeys.sonatypeDefaultResolver
 
 object KamonSbtUmbrella extends AutoPlugin {
 
-  override def requires: Plugins      = JvmPlugin
+  override def requires: Plugins = BintrayPlugin
   override def trigger: PluginTrigger = allRequirements
 
   override def projectSettings: Seq[_root_.sbt.Def.Setting[_]] =
@@ -39,11 +39,12 @@ object KamonSbtUmbrella extends AutoPlugin {
   private val umbrellaSettings = Seq(
     scalaVersion := scalaVersionSetting.value,
     crossScalaVersions := Seq("2.10.6", "2.11.8", "2.12.1"),
+    version := versionSetting.value,
     version in ThisBuild := versionSetting.value,
     isSnapshot := isSnapshotVersion(version.value),
     organization := "io.kamon",
     fork in run := true,
-    licenses += (("Apache V2", url("http://www.apache.org/licenses/LICENSE-2.0"))),
+    licenses += (("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
     scalacOptions := Seq(
       "-encoding",
       "utf8",
@@ -59,21 +60,18 @@ object KamonSbtUmbrella extends AutoPlugin {
     javacOptions := Seq(
       "-Xlint:-options"
     ),
-    publishTo := publishToSetting.value,
-    publish := publishTask.value
+    publishTo <<= publishToSetting
+    ,
+    publish <<= publishTask
   )
 
   private def scalaVersionSetting = Def.setting {
     if(sbtPlugin.value) scalaVersion.value else "2.12.1"
   }
 
-  def isWorkingDirectoryClean: Boolean = {
-    Process("git status --porcelain").lines.size == 0
-  }
-
   def versionSetting = Def.setting {
     val originalVersion = (version in ThisBuild).value
-    if (isSnapshotVersion(version.value)) {
+    if (isSnapshotVersion(originalVersion)) {
       val gitRevision = Process("git rev-parse HEAD").lines.head
       originalVersion.replace("SNAPSHOT", gitRevision)
     } else {
@@ -92,11 +90,18 @@ object KamonSbtUmbrella extends AutoPlugin {
       Some(sonatypeDefaultResolver.value)
   }
 
-  def publishTask = Def.task {
+  def isWorkingDirectoryDirty: Boolean = {
+    Process("git status --porcelain").lines.size > 0
+  }
+
+  def publishTask = Def.task[Unit] {
     import bintray.BintrayKeys._
     import com.typesafe.sbt.pgp.PgpKeys._
-
+    
     if(isSnapshotVersion((version in ThisBuild).value)) {
+      if(isWorkingDirectoryDirty)
+        sys.error("Your working directory is dirty, please cleanup and commit your changes before publishing.")
+
       Def.taskDyn {
         val ep = bintrayEnsureBintrayPackageExists.value
         val el = bintrayEnsureLicenses.value
@@ -106,7 +111,7 @@ object KamonSbtUmbrella extends AutoPlugin {
         else Def.task {
           val log = sLog.value
           log.warn("You must run bintrayRelease once all artifacts are staged.")}
-      }.value
+      }
     } else publishSigned
   }
 

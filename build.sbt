@@ -6,7 +6,7 @@ bintrayVcsUrl := Some("git@github.com:kamon-io/kamon-sbt-umbrella.git")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.10.6")
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.3")
-addSbtPlugin("com.geirsson" % "sbt-scalafmt" % "0.5.1")
+//addSbtPlugin("com.geirsson" % "sbt-scalafmt" % "0.5.1")
 addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "0.2.1")
 addSbtPlugin("com.jsuereth" % "sbt-pgp" % "1.0.0")
 addSbtPlugin("net.virtual-void" % "sbt-dependency-graph" % "0.8.1")
