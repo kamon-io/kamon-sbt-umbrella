@@ -19,6 +19,7 @@ object KamonSbtUmbrella extends AutoPlugin {
     organization := "io.kamon",
     fork in run := true,
     releaseCrossBuild := true,
+    releaseSnapshotDependencies := releaseSnapshotDependenciesTask.value,
     licenses += (("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
     scalacOptions := Seq(
       "-encoding",
@@ -85,6 +86,12 @@ object KamonSbtUmbrella extends AutoPlugin {
     } else {
       originalVersion
     }
+  }
+
+  private def releaseSnapshotDependenciesTask = Def.task {
+    val moduleIds = (managedClasspath in Runtime).value.flatMap(_.get(moduleID.key))
+    val snapshots = moduleIds.filter(m => m.isChanging || isSnapshotVersion(m.revision))
+    snapshots
   }
 
   private def publishTask = Def.taskDyn[Unit] {
