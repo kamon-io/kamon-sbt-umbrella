@@ -2,7 +2,7 @@ sbtPlugin := true
 
 organization := "io.kamon"
 name := "kamon-sbt-umbrella"
-bintrayVcsUrl := Some("git@github.com:kamon-io/kamon-sbt-umbrella.git")
+bintrayVcsUrl := Some("https://github.com/kamon-io/kamon-sbt-umbrella")
 
 addSbtPlugin("com.typesafe.sbt" % "sbt-aspectj" % "0.10.6")
 addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.3")
