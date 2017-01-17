@@ -65,6 +65,8 @@ object KamonSbtUmbrella extends AutoPlugin {
     def testScope(deps: ModuleID*): Seq[ModuleID]     = deps map (_ % "test")
     def providedScope(deps: ModuleID*): Seq[ModuleID] = deps map (_ % "provided")
     def optionalScope(deps: ModuleID*): Seq[ModuleID] = deps map (_ % "compile,optional")
+
+    val noPublishing = Seq(publish := (), publishLocal := (), publishArtifact := false)
   }
 
   private def scalaVersionSetting = Def.setting {
