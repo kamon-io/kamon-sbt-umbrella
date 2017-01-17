@@ -42,7 +42,6 @@ object KamonSbtUmbrella extends AutoPlugin {
       false
     },
     publishMavenStyle := publishMavenStyleSetting.value,
-    publishArtifact := false,
     pomExtra := defaultPomExtra(name.value),
     publish := publishTask.value
   )
