@@ -41,8 +41,8 @@ object KamonSbtUmbrella extends AutoPlugin {
     pomIncludeRepository := { x =>
       false
     },
-    publishMavenStyle := true,
-    publishArtifact in Test := false,
+    publishMavenStyle := publishMavenStyleSetting.value,
+    publishArtifact := false,
     pomExtra := defaultPomExtra(name.value),
     publish := publishTask.value
   )
@@ -95,14 +95,15 @@ object KamonSbtUmbrella extends AutoPlugin {
     } else {
       Classpaths.publishTask(publishConfiguration, deliver)
     }
+  }
 
+  private def publishMavenStyleSetting = Def.setting {
+    if (sbtPlugin.value) false else publishMavenStyle.value
   }
 
   private def isSnapshotVersion(version: String): Boolean = {
     (version matches """(?:\d+\.)?(?:\d+\.)?(?:\d+)-[0-9a-f]{5,40}""") || (version endsWith "-SNAPSHOT")
   }
-
-  private def checkWorkingDirectory = Def.task {}
 
   private def bintrayRepositorySetting = Def.setting {
     if (isSnapshot.value) "snapshots"
