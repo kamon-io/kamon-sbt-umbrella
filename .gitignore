@@ -4,7 +4,6 @@
 *.sc
 .pygments-cache
 .DS_Store
-.scalafmt.conf
 
 # sbt specific
 dist/*

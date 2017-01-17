@@ -2,18 +2,18 @@ package io.kamon.sbt.umbrella
 
 import sbt._
 import Keys._
-import bintray.BintrayKeys.{bintrayOrganization, bintrayRepository}
 import bintray.{Bintray, BintrayPlugin}
+import bintray.BintrayKeys.{bintrayOrganization, bintrayRepository}
 import sbtrelease.ReleasePlugin.autoImport._
 
 object KamonSbtUmbrella extends AutoPlugin {
 
-  override def requires: Plugins = BintrayPlugin
+  override def requires: Plugins      = BintrayPlugin
   override def trigger: PluginTrigger = allRequirements
 
   override def projectSettings: Seq[_root_.sbt.Def.Setting[_]] = Seq(
     scalaVersion := scalaVersionSetting.value,
-    crossScalaVersions := Seq("2.10.6", "2.11.8", "2.12.1"),
+    crossScalaVersions := crossScalaVersionsSetting.value,
     version := versionSetting.value,
     isSnapshot := isSnapshotVersion(version.value),
     organization := "io.kamon",
@@ -38,49 +38,43 @@ object KamonSbtUmbrella extends AutoPlugin {
     bintrayOrganization := Some("kamon-io"),
     bintrayRepository := bintrayRepositorySetting.value,
     crossPaths := true,
-    pomIncludeRepository := { x => false },
+    pomIncludeRepository := { x =>
+      false
+    },
     publishMavenStyle := true,
     publishArtifact in Test := false,
     pomExtra := defaultPomExtra(name.value),
     publish := publishTask.value
-//    ,
-//    publish := Def.taskDyn {
-//      println("Evaluating the task")
-//     // if(Process("git status --porcelain").lines.size > 0)
-//       // sys.error("Your working directory is dirty, please commit changes!")
-//
-//      Def.task {
-//        publish.value
-//      }
-//    }.value
   )
 
   object autoImport {
-    val aspectJ           = "org.aspectj"               %   "aspectjweaver"         % "1.8.10"
-    val hdrHistogram      = "org.hdrhistogram"          %   "HdrHistogram"          % "2.1.9"
-    val slf4jApi          = "org.slf4j"                 %   "slf4j-api"             % "1.7.7"
-    val slf4jnop          = "org.slf4j"                 %   "slf4j-nop"             % "1.7.7"
-    val logbackClassic    = "ch.qos.logback"            %   "logback-classic"       % "1.0.13"
-    val scalatest         = "org.scalatest"             %%  "scalatest"             % "3.0.1"
+    val aspectJ        = "org.aspectj"      % "aspectjweaver"   % "1.8.10"
+    val hdrHistogram   = "org.hdrhistogram" % "HdrHistogram"    % "2.1.9"
+    val slf4jApi       = "org.slf4j"        % "slf4j-api"       % "1.7.7"
+    val slf4jnop       = "org.slf4j"        % "slf4j-nop"       % "1.7.7"
+    val logbackClassic = "ch.qos.logback"   % "logback-classic" % "1.0.13"
+    val scalatest      = "org.scalatest"    %% "scalatest"      % "3.0.1"
 
     def akkaDependency(moduleName: String) = Def.setting {
       scalaBinaryVersion.value match {
-        case "2.10" | "2.11"  => "com.typesafe.akka" %% s"akka-$moduleName" % "2.3.15"
-        case "2.12"           => "com.typesafe.akka" %% s"akka-$moduleName" % "2.4.14"
+        case "2.10" | "2.11" => "com.typesafe.akka" %% s"akka-$moduleName" % "2.3.15"
+        case "2.12"          => "com.typesafe.akka" %% s"akka-$moduleName" % "2.4.14"
       }
     }
 
-    def compileScope   (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "compile")
-    def testScope      (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "test")
-    def providedScope  (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "provided")
-    def optionalScope  (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "compile,optional")
+    def compileScope(deps: ModuleID*): Seq[ModuleID]  = deps map (_ % "compile")
+    def testScope(deps: ModuleID*): Seq[ModuleID]     = deps map (_ % "test")
+    def providedScope(deps: ModuleID*): Seq[ModuleID] = deps map (_ % "provided")
+    def optionalScope(deps: ModuleID*): Seq[ModuleID] = deps map (_ % "compile,optional")
   }
-
 
   private def scalaVersionSetting = Def.setting {
-    if(sbtPlugin.value) scalaVersion.value else "2.12.1"
+    if (sbtPlugin.value) scalaVersion.value else "2.12.1"
   }
 
+  private def crossScalaVersionsSetting = Def.setting {
+    if (sbtPlugin.value) Seq(scalaVersion.value) else Seq("2.10.6", "2.11.8", "2.12.1")
+  }
 
   private def versionSetting = Def.setting {
     val originalVersion = (version in ThisBuild).value
@@ -93,7 +87,7 @@ object KamonSbtUmbrella extends AutoPlugin {
   }
 
   private def publishTask = Def.taskDyn[Unit] {
-    if(Process("git status --porcelain").lines.size > 0) {
+    if (Process("git status --porcelain").lines.size > 0) {
       Def.task {
         val log = streams.value.log
         log.error("Your working directory is dirty, please commit your changes before publishing.")
@@ -108,13 +102,12 @@ object KamonSbtUmbrella extends AutoPlugin {
     (version matches """(?:\d+\.)?(?:\d+\.)?(?:\d+)-[0-9a-f]{5,40}""") || (version endsWith "-SNAPSHOT")
   }
 
-  private def checkWorkingDirectory = Def.task {
-
-  }
+  private def checkWorkingDirectory = Def.task {}
 
   private def bintrayRepositorySetting = Def.setting {
-    if(isSnapshot.value) "snapshots"
-    else if(sbtPlugin.value) Bintray.defaultSbtPluginRepository else "releases"
+    if (isSnapshot.value) "snapshots"
+    else if (sbtPlugin.value) Bintray.defaultSbtPluginRepository
+    else "releases"
   }
 
   def defaultPomExtra(projectName: String) = {
@@ -134,5 +127,17 @@ object KamonSbtUmbrella extends AutoPlugin {
       <developer><id>dpsoft</id><name>Diego Parra</name><url>https://twitter.com/diegolparra</url></developer>
     </developers>
   }
+
+//  def writeScalafmtNoPublishing() = {
+//    val noPublishingFile = file("project/scalafmt/do-not.sbt")
+//
+//    if(noPublishingFile.exists() == false)
+//    IO.write(noPublishingFile,
+//      """
+//        |publish := ()
+//        |publishLocal := ()
+//        |publishArtifact := false
+//      """.stripMargin)
+//  }
 
 }
