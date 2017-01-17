@@ -2,18 +2,58 @@ package io.kamon.sbt.umbrella
 
 import sbt._
 import Keys._
-import bintray.BintrayKeys.{bintray => bintrayScope}
-import bintray.BintrayPlugin
-import xerial.sbt.Sonatype.sonatypeSettings
-import xerial.sbt.Sonatype.SonatypeKeys.sonatypeDefaultResolver
+import bintray.BintrayKeys.{bintrayOrganization, bintrayRepository}
+import bintray.{Bintray, BintrayPlugin}
+import sbtrelease.ReleasePlugin.autoImport._
 
 object KamonSbtUmbrella extends AutoPlugin {
 
   override def requires: Plugins = BintrayPlugin
   override def trigger: PluginTrigger = allRequirements
 
-  override def projectSettings: Seq[_root_.sbt.Def.Setting[_]] =
-    sonatypeSettings ++ sonatypePublishingSettings ++ bintraySettings ++ releaseSettings ++ umbrellaSettings
+  override def projectSettings: Seq[_root_.sbt.Def.Setting[_]] = Seq(
+    scalaVersion := scalaVersionSetting.value,
+    crossScalaVersions := Seq("2.10.6", "2.11.8", "2.12.1"),
+    version := versionSetting.value,
+    isSnapshot := isSnapshotVersion(version.value),
+    organization := "io.kamon",
+    fork in run := true,
+    releaseCrossBuild := true,
+    licenses += (("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
+    scalacOptions := Seq(
+      "-encoding",
+      "utf8",
+      "-g:vars",
+      "-feature",
+      "-unchecked",
+      "-deprecation",
+      "-language:postfixOps",
+      "-language:implicitConversions",
+      "-Xlog-reflective-calls",
+      "-Ywarn-dead-code"
+    ),
+    javacOptions := Seq(
+      "-Xlint:-options"
+    ),
+    bintrayOrganization := Some("kamon-io"),
+    bintrayRepository := bintrayRepositorySetting.value,
+    crossPaths := true,
+    pomIncludeRepository := { x => false },
+    publishMavenStyle := true,
+    publishArtifact in Test := false,
+    pomExtra := defaultPomExtra(name.value),
+    publish := publishTask.value
+//    ,
+//    publish := Def.taskDyn {
+//      println("Evaluating the task")
+//     // if(Process("git status --porcelain").lines.size > 0)
+//       // sys.error("Your working directory is dirty, please commit changes!")
+//
+//      Def.task {
+//        publish.value
+//      }
+//    }.value
+  )
 
   object autoImport {
     val aspectJ           = "org.aspectj"               %   "aspectjweaver"         % "1.8.10"
@@ -36,39 +76,13 @@ object KamonSbtUmbrella extends AutoPlugin {
     def optionalScope  (deps: ModuleID*): Seq[ModuleID] = deps map (_ % "compile,optional")
   }
 
-  private val umbrellaSettings = Seq(
-    scalaVersion := scalaVersionSetting.value,
-    crossScalaVersions := Seq("2.10.6", "2.11.8", "2.12.1"),
-    version := versionSetting.value,
-    version in ThisBuild := versionSetting.value,
-    isSnapshot := isSnapshotVersion(version.value),
-    organization := "io.kamon",
-    fork in run := true,
-    licenses += (("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
-    scalacOptions := Seq(
-      "-encoding",
-      "utf8",
-      "-g:vars",
-      "-feature",
-      "-unchecked",
-      "-deprecation",
-      "-language:postfixOps",
-      "-language:implicitConversions",
-      "-Xlog-reflective-calls",
-      "-Ywarn-dead-code"
-    ),
-    javacOptions := Seq(
-      "-Xlint:-options"
-    ),
-    publishTo := publishToSetting.value,
-    publish := publishTask.value
-  )
 
   private def scalaVersionSetting = Def.setting {
     if(sbtPlugin.value) scalaVersion.value else "2.12.1"
   }
 
-  def versionSetting = Def.setting {
+
+  private def versionSetting = Def.setting {
     val originalVersion = (version in ThisBuild).value
     if (isSnapshotVersion(originalVersion)) {
       val gitRevision = Process("git rev-parse HEAD").lines.head
@@ -78,69 +92,30 @@ object KamonSbtUmbrella extends AutoPlugin {
     }
   }
 
-  def isSnapshotVersion(version: String): Boolean = {
+  private def publishTask = Def.taskDyn[Unit] {
+    if(Process("git status --porcelain").lines.size > 0) {
+      Def.task {
+        val log = streams.value.log
+        log.error("Your working directory is dirty, please commit your changes before publishing.")
+      }
+    } else {
+      Classpaths.publishTask(publishConfiguration, deliver)
+    }
+
+  }
+
+  private def isSnapshotVersion(version: String): Boolean = {
     (version matches """(?:\d+\.)?(?:\d+\.)?(?:\d+)-[0-9a-f]{5,40}""") || (version endsWith "-SNAPSHOT")
   }
 
-  def publishToSetting = Def.setting {
-    if(isSnapshotVersion((version in ThisBuild).value))
-      (publishTo in bintrayScope).value
-    else
-      Some(sonatypeDefaultResolver.value)
+  private def checkWorkingDirectory = Def.task {
+
   }
 
-  def isWorkingDirectoryDirty: Boolean = {
-    Process("git status --porcelain").lines.size > 0
+  private def bintrayRepositorySetting = Def.setting {
+    if(isSnapshot.value) "snapshots"
+    else if(sbtPlugin.value) Bintray.defaultSbtPluginRepository else "releases"
   }
-
-  def publishTask = Def.taskDyn[Unit] {
-    import bintray.BintrayKeys._
-    import com.typesafe.sbt.pgp.PgpKeys._
-
-
-    if(isSnapshotVersion((version in ThisBuild).value)) {
-      if(isWorkingDirectoryDirty)
-        sys.error("Your working directory is dirty, please cleanup and commit your changes before publishing.")
-
-      Def.task {
-        val ep = bintrayEnsureBintrayPackageExists.value
-        val el = bintrayEnsureLicenses.value
-        val _ = publish.value
-        val isRelease = bintrayReleaseOnPublish.value
-        if (isRelease) bintrayRelease.value
-        else Def.task {
-          val log = sLog.value
-          log.warn("You must run bintrayRelease once all artifacts are staged.")
-        }.value
-      }
-    } else publishSigned
-  }
-
-
-  /**
-    *   Snapshot publishing to Bintray
-    */
-
-  private val bintraySettings = {
-    import bintray.BintrayKeys._
-
-    Seq(
-      bintrayOrganization := Some("kamon-io")
-    )
-  }
-
-
-  /**
-    *   Sonatype Publishing Settings
-    */
-
-  private val sonatypePublishingSettings = Seq(
-    crossPaths := true,
-    pomIncludeRepository := { x => false },
-    publishMavenStyle := true,
-    publishArtifact in Test := false,
-    pomExtra := defaultPomExtra(name.value)
-  )
 
   def defaultPomExtra(projectName: String) = {
     <url>http://kamon.io</url>
@@ -159,21 +134,5 @@ object KamonSbtUmbrella extends AutoPlugin {
       <developer><id>dpsoft</id><name>Diego Parra</name><url>https://twitter.com/diegolparra</url></developer>
     </developers>
   }
-
-
-  /**
-    *   Release process.
-    */
-  private val releaseSettings = {
-    import sbtrelease.ReleasePlugin.autoImport._
-    import com.typesafe.sbt.pgp.PgpKeys._
-
-    Seq(
-      releaseCrossBuild := true,
-      pgpSecretRing := file(System.getProperty("user.home")) / ".gnupg" / "kamon_pubring.gpg",
-      pgpPublicRing := file(System.getProperty("user.home")) / ".gnupg" / "kamon_secring.gpg"
-    )
-  }
-
 
 }
