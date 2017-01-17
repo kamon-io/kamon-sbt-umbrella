@@ -127,17 +127,4 @@ object KamonSbtUmbrella extends AutoPlugin {
       <developer><id>dpsoft</id><name>Diego Parra</name><url>https://twitter.com/diegolparra</url></developer>
     </developers>
   }
-
-//  def writeScalafmtNoPublishing() = {
-//    val noPublishingFile = file("project/scalafmt/do-not.sbt")
-//
-//    if(noPublishingFile.exists() == false)
-//    IO.write(noPublishingFile,
-//      """
-//        |publish := ()
-//        |publishLocal := ()
-//        |publishArtifact := false
-//      """.stripMargin)
-//  }
-
 }
