@@ -4,6 +4,8 @@ import sbt._
 import Keys._
 import bintray.{Bintray, BintrayPlugin}
 import bintray.BintrayKeys.{bintrayOrganization, bintrayRepository}
+import com.typesafe.sbt.SbtAspectj.AspectjKeys._
+import com.typesafe.sbt.SbtAspectj._
 import sbtrelease.ReleasePlugin.autoImport._
 
 object KamonSbtUmbrella extends AutoPlugin {
@@ -68,6 +70,15 @@ object KamonSbtUmbrella extends AutoPlugin {
     def optionalScope(deps: ModuleID*): Seq[ModuleID] = deps map (_ % "compile,optional")
 
     val noPublishing = Seq(publish := (), publishLocal := (), publishArtifact := false)
+
+    val aspectJSettings = inConfig(Aspectj)(defaultAspectjSettings) ++ aspectjDependencySettings ++ Seq(
+        aspectjVersion in Aspectj := "1.8.10",
+        compileOnly in Aspectj := true,
+        fork in Test := true,
+        javaOptions in Test ++= (weaverOptions in Aspectj).value,
+        javaOptions in run ++= (weaverOptions in Aspectj).value,
+        lintProperties in Aspectj += "invalidAbsoluteTypeName = ignore"
+      )
   }
 
   private def scalaVersionSetting = Def.setting {
@@ -136,4 +147,15 @@ object KamonSbtUmbrella extends AutoPlugin {
       <developer><id>dpsoft</id><name>Diego Parra</name><url>https://twitter.com/diegolparra</url></developer>
     </developers>
   }
+
+  private def aspectjDependencySettings = Seq(
+    ivyConfigurations += Aspectj,
+    libraryDependencies ++= (aspectjVersion in Aspectj) { version =>
+      Seq(
+        "org.aspectj" % "aspectjtools"  % version % Aspectj.name,
+        "org.aspectj" % "aspectjweaver" % version % Aspectj.name,
+        "org.aspectj" % "aspectjrt"     % version % Aspectj.name
+      )
+    }.value
+  )
 }
