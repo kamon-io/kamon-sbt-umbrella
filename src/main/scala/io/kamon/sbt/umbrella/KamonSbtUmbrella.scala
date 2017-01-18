@@ -16,10 +16,10 @@ object KamonSbtUmbrella extends AutoPlugin {
   override def projectSettings: Seq[_root_.sbt.Def.Setting[_]] = Seq(
     scalaVersion := scalaVersionSetting.value,
     crossScalaVersions := crossScalaVersionsSetting.value,
+    test := crossVersionTestTask.value,
     version := versionSetting.value,
     isSnapshot := isSnapshotVersion(version.value),
     organization := "io.kamon",
-    fork in run := true,
     releaseCrossBuild := true,
     releaseSnapshotDependencies := releaseSnapshotDependenciesTask.value,
     licenses += (("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
@@ -74,6 +74,7 @@ object KamonSbtUmbrella extends AutoPlugin {
     val aspectJSettings = inConfig(Aspectj)(defaultAspectjSettings) ++ aspectjDependencySettings ++ Seq(
         aspectjVersion in Aspectj := "1.8.10",
         compileOnly in Aspectj := true,
+        fork in run := true,
         fork in Test := true,
         javaOptions in Test ++= (weaverOptions in Aspectj).value,
         javaOptions in run ++= (weaverOptions in Aspectj).value,
@@ -98,6 +99,13 @@ object KamonSbtUmbrella extends AutoPlugin {
       originalVersion
     }
   }
+
+  private def crossVersionTestTask = Def.taskDyn[Unit] {
+    if(crossScalaVersions.value.contains(scalaVersion.value))
+      Def.task { (test in Test).value }
+    else Def.task {}
+  }
+
 
   private def releaseSnapshotDependenciesTask = Def.task {
     val moduleIds = (managedClasspath in Runtime).value.flatMap(_.get(moduleID.key))
