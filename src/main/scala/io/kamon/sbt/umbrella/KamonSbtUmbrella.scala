@@ -16,7 +16,7 @@ object KamonSbtUmbrella extends AutoPlugin {
   override def projectSettings: Seq[_root_.sbt.Def.Setting[_]] = Seq(
     scalaVersion := scalaVersionSetting.value,
     crossScalaVersions := crossScalaVersionsSetting.value,
-    test := crossVersionTestTask.value,
+    test in Test := crossVersionTestTask.value,
     version := versionSetting.value,
     isSnapshot := isSnapshotVersion(version.value),
     organization := "io.kamon",
