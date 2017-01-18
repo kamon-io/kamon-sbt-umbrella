@@ -46,7 +46,8 @@ object KamonSbtUmbrella extends AutoPlugin {
     },
     publishMavenStyle := publishMavenStyleSetting.value,
     pomExtra := defaultPomExtra(name.value),
-    publish := publishTask.value
+    publish := publishTask.value,
+    publishArtifact := publishArtifactSetting.value
   )
 
   object autoImport {
@@ -114,6 +115,10 @@ object KamonSbtUmbrella extends AutoPlugin {
     } else {
       Classpaths.publishTask(publishConfiguration, deliver)
     }
+  }
+
+  private def publishArtifactSetting = Def.setting {
+    crossScalaVersions.value.contains(scalaVersion.value)
   }
 
   private def publishMavenStyleSetting = Def.setting {
