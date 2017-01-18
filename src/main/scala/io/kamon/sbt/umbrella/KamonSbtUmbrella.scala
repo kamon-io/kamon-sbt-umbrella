@@ -6,7 +6,9 @@ import bintray.{Bintray, BintrayPlugin}
 import bintray.BintrayKeys.{bintrayOrganization, bintrayRepository}
 import com.typesafe.sbt.SbtAspectj.AspectjKeys._
 import com.typesafe.sbt.SbtAspectj._
+import sbtrelease.ReleasePlugin.autoImport.ReleaseKeys._
 import sbtrelease.ReleasePlugin.autoImport._
+import sbtrelease.ReleaseStateTransformations._
 
 object KamonSbtUmbrella extends AutoPlugin {
 
@@ -16,11 +18,12 @@ object KamonSbtUmbrella extends AutoPlugin {
   override def projectSettings: Seq[_root_.sbt.Def.Setting[_]] = Seq(
     scalaVersion := scalaVersionSetting.value,
     crossScalaVersions := crossScalaVersionsSetting.value,
-    test in Test := crossVersionTestTask.value,
+    test := crossVersionTestTask.value,
     version := versionSetting.value,
     isSnapshot := isSnapshotVersion(version.value),
     organization := "io.kamon",
     releaseCrossBuild := true,
+    releaseProcess := kamonReleaseProcess,
     releaseSnapshotDependencies := releaseSnapshotDependenciesTask.value,
     licenses += (("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
     scalacOptions := Seq(
@@ -169,5 +172,30 @@ object KamonSbtUmbrella extends AutoPlugin {
         "org.aspectj" % "aspectjrt"     % version % Aspectj.name
       )
     }.value
+  )
+
+  private def kamonReleaseProcess = Seq[ReleaseStep](
+    checkSnapshotDependencies,
+    inquireVersions,
+    runClean,
+    runTestWithoutConfiguration,
+    setReleaseVersion,
+    commitReleaseVersion,
+    tagRelease,
+    publishArtifacts,
+    setNextVersion,
+    commitNextVersion,
+    pushChanges
+  )
+
+  private lazy val runTestWithoutConfiguration: ReleaseStep = ReleaseStep(
+    action = { st: State =>
+      if (!st.get(skipTests).getOrElse(false)) {
+        val extracted = Project.extract(st)
+        val ref = extracted.get(thisProjectRef)
+        extracted.runAggregated(test in ref, st)
+      } else st
+    },
+    enableCrossBuild = true
   )
 }
