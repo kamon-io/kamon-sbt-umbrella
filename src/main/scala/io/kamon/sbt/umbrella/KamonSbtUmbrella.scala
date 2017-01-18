@@ -25,6 +25,7 @@ object KamonSbtUmbrella extends AutoPlugin {
     releaseCrossBuild := true,
     releaseProcess := kamonReleaseProcess,
     releaseSnapshotDependencies := releaseSnapshotDependenciesTask.value,
+    releaseCommitMessage := releaseCommitMessageSetting.value,
     licenses += (("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
     scalacOptions := Seq(
       "-encoding",
@@ -114,6 +115,14 @@ object KamonSbtUmbrella extends AutoPlugin {
     val moduleIds = (managedClasspath in Runtime).value.flatMap(_.get(moduleID.key))
     val snapshots = moduleIds.filter(m => m.isChanging || isSnapshotVersion(m.revision))
     snapshots
+  }
+
+  private def releaseCommitMessageSetting = Def.setting {
+    val currentVersion = if (releaseUseGlobalVersion.value) (version in ThisBuild).value else version.value
+    if(isSnapshotVersion(currentVersion))
+      s"setting version to $currentVersion"
+    else
+      s"releasing version $currentVersion"
   }
 
   private def publishTask = Def.taskDyn[Unit] {
