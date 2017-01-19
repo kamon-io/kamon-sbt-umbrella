@@ -6,6 +6,7 @@ import bintray.{Bintray, BintrayPlugin}
 import bintray.BintrayKeys.{bintrayOrganization, bintrayRepository}
 import com.typesafe.sbt.SbtAspectj.AspectjKeys._
 import com.typesafe.sbt.SbtAspectj._
+import sbtdoge.CrossPerProjectPlugin
 import sbtrelease.ReleasePlugin.autoImport.ReleaseKeys._
 import sbtrelease.ReleasePlugin.autoImport._
 import sbtrelease.ReleaseStateTransformations._
@@ -18,7 +19,6 @@ object KamonSbtUmbrella extends AutoPlugin {
   override def projectSettings: Seq[_root_.sbt.Def.Setting[_]] = Seq(
     scalaVersion := scalaVersionSetting.value,
     crossScalaVersions := crossScalaVersionsSetting.value,
-    test := crossVersionTestTask.value,
     version := versionSetting.value,
     isSnapshot := isSnapshotVersion(version.value),
     organization := "io.kamon",
@@ -49,9 +49,8 @@ object KamonSbtUmbrella extends AutoPlugin {
     publishArtifact in Test := false,
     publishMavenStyle := publishMavenStyleSetting.value,
     pomExtra := defaultPomExtra(name.value),
-    publish := publishTask.value,
-    publishArtifact := publishArtifactSetting.value
-  )
+    publish := publishTask.value
+  ) ++ CrossPerProjectPlugin.projectSettings
 
   object autoImport {
     val aspectJ        = "org.aspectj"      % "aspectjweaver"   % "1.8.10"
@@ -104,13 +103,6 @@ object KamonSbtUmbrella extends AutoPlugin {
     }
   }
 
-  private def crossVersionTestTask = Def.taskDyn[Unit] {
-    if(crossScalaVersions.value.contains(scalaVersion.value))
-      Def.task { (test in Test).value }
-    else Def.task {}
-  }
-
-
   private def releaseSnapshotDependenciesTask = Def.task {
     val moduleIds = (managedClasspath in Runtime).value.flatMap(_.get(moduleID.key))
     val snapshots = moduleIds.filter(m => m.isChanging || isSnapshotVersion(m.revision))
@@ -134,10 +126,6 @@ object KamonSbtUmbrella extends AutoPlugin {
     } else {
       Classpaths.publishTask(publishConfiguration, deliver)
     }
-  }
-
-  private def publishArtifactSetting = Def.setting {
-    crossScalaVersions.value.contains(scalaVersion.value)
   }
 
   private def publishMavenStyleSetting = Def.setting {
