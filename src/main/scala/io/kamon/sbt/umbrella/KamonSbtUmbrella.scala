@@ -7,7 +7,6 @@ import bintray.BintrayKeys.{bintrayOrganization, bintrayRepository}
 import com.typesafe.sbt.SbtAspectj.AspectjKeys._
 import com.typesafe.sbt.SbtAspectj._
 import sbtdoge.CrossPerProjectPlugin
-import sbtrelease.ReleasePlugin.autoImport.ReleaseKeys._
 import sbtrelease.ReleasePlugin.autoImport._
 import sbtrelease.ReleaseStateTransformations._
 
@@ -22,8 +21,8 @@ object KamonSbtUmbrella extends AutoPlugin {
     version := versionSetting.value,
     isSnapshot := isSnapshotVersion(version.value),
     organization := "io.kamon",
-    releaseCrossBuild := true,
-    releaseProcess := kamonReleaseProcess,
+    releaseCrossBuild := false,
+    releaseProcess := kamonReleaseProcess.value,
     releaseSnapshotDependencies := releaseSnapshotDependenciesTask.value,
     releaseCommitMessage := releaseCommitMessageSetting.value,
     licenses += (("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
@@ -50,7 +49,7 @@ object KamonSbtUmbrella extends AutoPlugin {
     publishMavenStyle := publishMavenStyleSetting.value,
     pomExtra := defaultPomExtra(name.value),
     publish := publishTask.value
-  ) ++ CrossPerProjectPlugin.projectSettings
+  )
 
   object autoImport {
     val aspectJ        = "org.aspectj"      % "aspectjweaver"   % "1.8.10"
@@ -112,9 +111,9 @@ object KamonSbtUmbrella extends AutoPlugin {
   private def releaseCommitMessageSetting = Def.setting {
     val currentVersion = if (releaseUseGlobalVersion.value) (version in ThisBuild).value else version.value
     if(isSnapshotVersion(currentVersion))
-      s"setting version to $currentVersion"
+      s"set version to $currentVersion"
     else
-      s"releasing version $currentVersion"
+      s"release version $currentVersion"
   }
 
   private def publishTask = Def.taskDyn[Unit] {
@@ -171,28 +170,23 @@ object KamonSbtUmbrella extends AutoPlugin {
     }.value
   )
 
-  private def kamonReleaseProcess = Seq[ReleaseStep](
-    checkSnapshotDependencies,
-    inquireVersions,
-    runClean,
-    runTestWithoutConfiguration,
-    setReleaseVersion,
-    commitReleaseVersion,
-    tagRelease,
-    publishArtifacts,
-    setNextVersion,
-    commitNextVersion,
-    pushChanges
-  )
+  private def kamonReleaseProcess = Def.setting {
+    val publishStep =
+      if(sbtPlugin.value) releaseStepCommandAndRemaining("publish")
+      else releaseStepCommandAndRemaining("+publish")
 
-  private lazy val runTestWithoutConfiguration: ReleaseStep = ReleaseStep(
-    action = { st: State =>
-      if (!st.get(skipTests).getOrElse(false)) {
-        val extracted = Project.extract(st)
-        val ref = extracted.get(thisProjectRef)
-        extracted.runAggregated(test in ref, st)
-      } else st
-    },
-    enableCrossBuild = true
-  )
+    Seq[ReleaseStep](
+      checkSnapshotDependencies,
+      inquireVersions,
+      runClean,
+      releaseStepCommandAndRemaining("+test"),
+      setReleaseVersion,
+      commitReleaseVersion,
+      tagRelease,
+      publishStep,
+      setNextVersion,
+      commitNextVersion,
+      pushChanges
+    )
+  }
 }
