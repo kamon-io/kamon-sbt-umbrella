@@ -48,8 +48,9 @@ object KamonSbtUmbrella extends AutoPlugin {
     publishArtifact in Test := false,
     publishMavenStyle := publishMavenStyleSetting.value,
     pomExtra := defaultPomExtra(name.value),
-    publish := publishTask.value
-  )
+    publish := publishTask.value,
+    resolvers += Resolver.bintrayRepo("kamon-io", "releases")
+  ) ++ CrossPerProjectPlugin.projectSettings
 
   object autoImport {
     val aspectJ        = "org.aspectj"      % "aspectjweaver"   % "1.8.10"
