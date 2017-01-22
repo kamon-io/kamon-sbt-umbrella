@@ -50,7 +50,7 @@ object KamonSbtUmbrella extends AutoPlugin {
     pomExtra := defaultPomExtra(name.value),
     publish := publishTask.value,
     resolvers += Resolver.bintrayRepo("kamon-io", "releases")
-  ) ++ CrossPerProjectPlugin.projectSettings
+  )
 
   object autoImport {
     val aspectJ        = "org.aspectj"      % "aspectjweaver"   % "1.8.10"
@@ -83,6 +83,8 @@ object KamonSbtUmbrella extends AutoPlugin {
         javaOptions in run ++= (weaverOptions in Aspectj).value,
         lintProperties in Aspectj += "invalidAbsoluteTypeName = ignore"
       )
+
+    val enableProperCrossScalaVersionTasks = CrossPerProjectPlugin.projectSettings
   }
 
   private def scalaVersionSetting = Def.setting {
