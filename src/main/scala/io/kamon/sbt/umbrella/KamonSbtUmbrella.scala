@@ -62,8 +62,8 @@ object KamonSbtUmbrella extends AutoPlugin {
 
     def akkaDependency(moduleName: String) = Def.setting {
       scalaBinaryVersion.value match {
-        case "2.10" | "2.11" => "com.typesafe.akka" %% s"akka-$moduleName" % "2.3.15"
-        case "2.12"          => "com.typesafe.akka" %% s"akka-$moduleName" % "2.4.14"
+        case "2.10"          => "com.typesafe.akka" %% s"akka-$moduleName" % "2.3.15"
+        case "2.11" | "2.12" => "com.typesafe.akka" %% s"akka-$moduleName" % "2.4.14"
       }
     }
 
@@ -120,7 +120,7 @@ object KamonSbtUmbrella extends AutoPlugin {
   }
 
   private def publishTask = Def.taskDyn[Unit] {
-    if (Process("git status --porcelain").lines.size > 0) {
+    if (Process("git status --porcelain").lines.nonEmpty) {
       Def.task {
         val log = streams.value.log
         log.error("Your working directory is dirty, please commit your changes before publishing.")
