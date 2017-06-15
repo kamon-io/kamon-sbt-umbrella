@@ -135,7 +135,7 @@ object KamonSbtUmbrella extends AutoPlugin {
   }
 
   private def isSnapshotVersion(version: String): Boolean = {
-    (version matches """(?:\d+\.)?(?:\d+\.)?(?:\d+)-[0-9a-f]{5,40}""") || (version endsWith "-SNAPSHOT")
+    (version matches """(?:\d+\.)?(?:\d+\.)?(?:\d+)(?:-[A-Z0-9]*)?-[0-9a-f]{5,40}""") || (version endsWith "-SNAPSHOT")
   }
 
   private def bintrayRepositorySetting = Def.setting {
