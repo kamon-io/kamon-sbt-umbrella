@@ -1,27 +1,58 @@
 package io.kamon.sbt.umbrella
 
-import sbt._
+import sbt.{Def, _}
 import Keys._
 import bintray.{Bintray, BintrayPlugin}
 import bintray.BintrayKeys.{bintrayOrganization, bintrayRepository}
-import com.typesafe.sbt.SbtAspectj.AspectjKeys._
-import com.typesafe.sbt.SbtAspectj._
-import sbtdoge.CrossPerProjectPlugin
 import sbtrelease.ReleasePlugin.autoImport._
 import sbtrelease.ReleaseStateTransformations._
+import com.lightbend.sbt.javaagent.JavaAgent
+
+import scala.sys.process.Process
+import com.lightbend.sbt.javaagent.JavaAgent.JavaAgentKeys.javaAgents
 
 object KamonSbtUmbrella extends AutoPlugin {
 
-  override def requires: Plugins      = BintrayPlugin
+  object autoImport {
+    val aspectJ        = "org.aspectj"      %  "aspectjrt"       % "1.9.2"
+    val kanelaAgent    = "io.kamon"         %  "kanela-agent"    % "0.0.15"
+    val hdrHistogram   = "org.hdrhistogram" %  "HdrHistogram"    % "2.1.10"
+    val slf4jApi       = "org.slf4j"        %  "slf4j-api"       % "1.7.25"
+    val slf4jnop       = "org.slf4j"        %  "slf4j-nop"       % "1.7.24"
+    val logbackClassic = "ch.qos.logback"   %  "logback-classic" % "1.2.3"
+    val scalatest      = "org.scalatest"    %% "scalatest"       % "3.0.5"
+
+    val kamonAspectJVersion = settingKey[String]("AspectJ Weaver agent version")
+    val kamonKanelaVersion = settingKey[String]("Kanela agent version")
+    val kamonUseAspectJ = settingKey[Boolean]("Enable using the AspectJ instrumentation agent instead of Kanela")
+
+    val noPublishing = Seq(publish := {}, publishLocal := {}, publishArtifact := false)
+    val instrumentationSettings = Seq(
+      javaAgents := {
+        if(kamonUseAspectJ.value)
+          Seq("org.aspectj" % "aspectjweaver" % kamonAspectJVersion.value % "runtime;test")
+        else
+          Seq("io.kamon" % "kanela-agent" % kamonKanelaVersion.value % "runtime;test")
+      }
+    )
+
+    def compileScope(deps: ModuleID*): Seq[ModuleID]  = deps map (_ % "compile")
+    def testScope(deps: ModuleID*): Seq[ModuleID]     = deps map (_ % "test")
+    def providedScope(deps: ModuleID*): Seq[ModuleID] = deps map (_ % "provided")
+    def optionalScope(deps: ModuleID*): Seq[ModuleID] = deps map (_ % "compile,optional")
+  }
+
+  override def requires: Plugins      = BintrayPlugin && JavaAgent
   override def trigger: PluginTrigger = allRequirements
 
+  import autoImport._
   override def projectSettings: Seq[_root_.sbt.Def.Setting[_]] = Seq(
     scalaVersion := scalaVersionSetting.value,
     crossScalaVersions := crossScalaVersionsSetting.value,
     version := versionSetting.value,
     isSnapshot := isSnapshotVersion(version.value),
     organization := "io.kamon",
-    releaseCrossBuild := false,
+    releaseCrossBuild := true,
     releaseProcess := kamonReleaseProcess.value,
     releaseSnapshotDependencies := releaseSnapshotDependenciesTask.value,
     releaseCommitMessage := releaseCommitMessageSetting.value,
@@ -44,48 +75,20 @@ object KamonSbtUmbrella extends AutoPlugin {
     bintrayOrganization := Some("kamon-io"),
     bintrayRepository := bintrayRepositorySetting.value,
     crossPaths := true,
-    pomIncludeRepository := { x => false },
+    pomIncludeRepository := { _ => false },
     publishArtifact in Test := false,
     publishMavenStyle := publishMavenStyleSetting.value,
     pomExtra := defaultPomExtra(name.value),
     publish := publishTask.value,
-    resolvers += Resolver.bintrayRepo("kamon-io", "releases")
+    resolvers += Resolver.bintrayRepo("kamon-io", "releases"),
+    kamonAspectJVersion := "1.9.2",
+    kamonKanelaVersion := "0.0.15"
   )
 
-  object autoImport {
-    val aspectJ        = "org.aspectj"      % "aspectjweaver"   % "1.8.10"
-    val hdrHistogram   = "org.hdrhistogram" % "HdrHistogram"    % "2.1.9"
-    val slf4jApi       = "org.slf4j"        % "slf4j-api"       % "1.7.7"
-    val slf4jnop       = "org.slf4j"        % "slf4j-nop"       % "1.7.7"
-    val logbackClassic = "ch.qos.logback"   % "logback-classic" % "1.0.13"
-    val scalatest      = "org.scalatest"    %% "scalatest"      % "3.0.1"
 
-    def akkaDependency(moduleName: String) = Def.setting {
-      scalaBinaryVersion.value match {
-        case "2.10" | "2.11" => "com.typesafe.akka" %% s"akka-$moduleName" % "2.3.15"
-        case "2.12"          => "com.typesafe.akka" %% s"akka-$moduleName" % "2.4.14"
-      }
-    }
-
-    def compileScope(deps: ModuleID*): Seq[ModuleID]  = deps map (_ % "compile")
-    def testScope(deps: ModuleID*): Seq[ModuleID]     = deps map (_ % "test")
-    def providedScope(deps: ModuleID*): Seq[ModuleID] = deps map (_ % "provided")
-    def optionalScope(deps: ModuleID*): Seq[ModuleID] = deps map (_ % "compile,optional")
-
-    val noPublishing = Seq(publish := (), publishLocal := (), publishArtifact := false)
-
-    val aspectJSettings = inConfig(Aspectj)(defaultAspectjSettings) ++ aspectjDependencySettings ++ Seq(
-        aspectjVersion in Aspectj := "1.8.10",
-        compileOnly in Aspectj := true,
-        fork in run := true,
-        fork in Test := true,
-        javaOptions in Test ++= (weaverOptions in Aspectj).value,
-        javaOptions in run ++= (weaverOptions in Aspectj).value,
-        lintProperties in Aspectj += "invalidAbsoluteTypeName = ignore"
-      )
-
-    val enableProperCrossScalaVersionTasks = CrossPerProjectPlugin.projectSettings
-  }
+  override def globalSettings: Seq[Def.Setting[_]] = Seq(
+    kamonUseAspectJ := false
+  )
 
   private def scalaVersionSetting = Def.setting {
     if (sbtPlugin.value) scalaVersion.value else "2.12.1"
@@ -98,7 +101,7 @@ object KamonSbtUmbrella extends AutoPlugin {
   private def versionSetting = Def.setting {
     val originalVersion = (version in ThisBuild).value
     if (isSnapshotVersion(originalVersion)) {
-      val gitRevision = Process("git rev-parse HEAD").lines.head
+      val gitRevision = Process("git rev-parse HEAD").lineStream.head
       originalVersion.replace("SNAPSHOT", gitRevision)
     } else {
       originalVersion
@@ -120,13 +123,13 @@ object KamonSbtUmbrella extends AutoPlugin {
   }
 
   private def publishTask = Def.taskDyn[Unit] {
-    if (Process("git status --porcelain").lines.size > 0) {
+    if (Process("git status --porcelain").lineStream.size > 0) {
       Def.task {
         val log = streams.value.log
         log.error("Your working directory is dirty, please commit your changes before publishing.")
       }
     } else {
-      Classpaths.publishTask(publishConfiguration, deliver)
+      Classpaths.publishTask(publishConfiguration)
     }
   }
 
@@ -155,17 +158,6 @@ object KamonSbtUmbrella extends AutoPlugin {
       <developer><id>dpsoft</id><name>Diego Parra</name><url>https://twitter.com/diegolparra</url></developer>
     </developers>
   }
-
-  private def aspectjDependencySettings = Seq(
-    ivyConfigurations += Aspectj,
-    libraryDependencies ++= (aspectjVersion in Aspectj) { version =>
-      Seq(
-        "org.aspectj" % "aspectjtools"  % version % Aspectj.name,
-        "org.aspectj" % "aspectjweaver" % version % Aspectj.name,
-        "org.aspectj" % "aspectjrt"     % version % Aspectj.name
-      )
-    }.value
-  )
 
   private def kamonReleaseProcess = Def.setting {
     val publishStep =
