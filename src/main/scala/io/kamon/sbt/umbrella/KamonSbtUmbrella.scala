@@ -6,10 +6,10 @@ import bintray.{Bintray, BintrayPlugin}
 import bintray.BintrayKeys.{bintrayOrganization, bintrayRepository}
 import sbtrelease.ReleasePlugin.autoImport._
 import sbtrelease.ReleaseStateTransformations._
-import com.lightbend.sbt.javaagent.JavaAgent
 
 import scala.sys.process.Process
 import com.lightbend.sbt.javaagent.JavaAgent.JavaAgentKeys.javaAgents
+import sbt.plugins.JvmPlugin
 
 object KamonSbtUmbrella extends AutoPlugin {
 
@@ -42,7 +42,7 @@ object KamonSbtUmbrella extends AutoPlugin {
     def optionalScope(deps: ModuleID*): Seq[ModuleID] = deps map (_ % "compile,optional")
   }
 
-  override def requires: Plugins      = BintrayPlugin && JavaAgent
+  override def requires: Plugins      = BintrayPlugin && JvmPlugin
   override def trigger: PluginTrigger = allRequirements
 
   import autoImport._
