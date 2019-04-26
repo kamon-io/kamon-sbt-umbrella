@@ -14,26 +14,18 @@ import sbt.plugins.JvmPlugin
 object KamonSbtUmbrella extends AutoPlugin {
 
   object autoImport {
-    val aspectJ        = "org.aspectj"      %  "aspectjrt"       % "1.9.2"
-    val kanelaAgent    = "io.kamon"         %  "kanela-agent"    % "0.0.15"
+    val kanelaAgent    = "io.kamon"         %  "kanela-agent"    % "1.0.0-M1"
     val hdrHistogram   = "org.hdrhistogram" %  "HdrHistogram"    % "2.1.10"
     val slf4jApi       = "org.slf4j"        %  "slf4j-api"       % "1.7.25"
     val slf4jnop       = "org.slf4j"        %  "slf4j-nop"       % "1.7.24"
     val logbackClassic = "ch.qos.logback"   %  "logback-classic" % "1.2.3"
     val scalatest      = "org.scalatest"    %% "scalatest"       % "3.0.5"
 
-    val kamonAspectJVersion = settingKey[String]("AspectJ Weaver agent version")
-    val kamonKanelaVersion = settingKey[String]("Kanela agent version")
-    val kamonUseAspectJ = settingKey[Boolean]("Enable using the AspectJ instrumentation agent instead of Kanela")
+    val kamonKanelaVersion = settingKey[String]("Kanela Agent version")
 
     val noPublishing = Seq(publish := {}, publishLocal := {}, publishArtifact := false)
     val instrumentationSettings = Seq(
-      javaAgents := {
-        if(kamonUseAspectJ.value)
-          Seq("org.aspectj" % "aspectjweaver" % kamonAspectJVersion.value % "runtime;test")
-        else
-          Seq("io.kamon" % "kanela-agent" % kamonKanelaVersion.value % "runtime;test")
-      }
+      javaAgents := Seq("io.kamon" % "kanela-agent" % kamonKanelaVersion.value % "runtime;test")
     )
 
     def compileScope(deps: ModuleID*): Seq[ModuleID]  = deps map (_ % "compile")
@@ -81,21 +73,15 @@ object KamonSbtUmbrella extends AutoPlugin {
     pomExtra := defaultPomExtra(name.value),
     publish := publishTask.value,
     resolvers += Resolver.bintrayRepo("kamon-io", "releases"),
-    kamonAspectJVersion := "1.9.2",
-    kamonKanelaVersion := "0.0.15"
-  )
-
-
-  override def globalSettings: Seq[Def.Setting[_]] = Seq(
-    kamonUseAspectJ := false
+    kamonKanelaVersion := "1.0.0-M1"
   )
 
   private def scalaVersionSetting = Def.setting {
-    if (sbtPlugin.value) scalaVersion.value else "2.12.7"
+    if (sbtPlugin.value) scalaVersion.value else "2.12.8"
   }
 
   private def crossScalaVersionsSetting = Def.setting {
-    if (sbtPlugin.value) Seq(scalaVersion.value) else Seq("2.10.7", "2.11.12", "2.12.7")
+    if (sbtPlugin.value) Seq(scalaVersion.value) else Seq("2.10.7", "2.11.12", "2.12.8")
   }
 
   private def versionSetting = Def.setting {
