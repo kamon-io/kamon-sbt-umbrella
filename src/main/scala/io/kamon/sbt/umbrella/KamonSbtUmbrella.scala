@@ -21,11 +21,12 @@ object KamonSbtUmbrella extends AutoPlugin {
     val logbackClassic = "ch.qos.logback"   %  "logback-classic" % "1.2.3"
     val scalatest      = "org.scalatest"    %% "scalatest"       % "3.0.5"
 
-    val kamonKanelaVersion = settingKey[String]("Kanela Agent version")
+    val kanelaAgentVersion = settingKey[String]("Kanela Agent version")
+    val kanelaAgentJar = taskKey[File]("Kanela Agent jar")
 
     val noPublishing = Seq(publish := {}, publishLocal := {}, publishArtifact := false)
     val instrumentationSettings = Seq(
-      javaAgents := Seq("io.kamon" % "kanela-agent" % kamonKanelaVersion.value % "runtime;test")
+      javaAgents := Seq("io.kamon" % "kanela-agent" % kanelaAgentVersion.value % "runtime;test")
     )
 
     def compileScope(deps: ModuleID*): Seq[ModuleID]  = deps map (_ % "compile")
@@ -73,7 +74,8 @@ object KamonSbtUmbrella extends AutoPlugin {
     pomExtra := defaultPomExtra(name.value),
     publish := publishTask.value,
     resolvers += Resolver.bintrayRepo("kamon-io", "releases"),
-    kamonKanelaVersion := "1.0.0-M1"
+    kanelaAgentVersion := "1.0.0-M2",
+    kanelaAgentJar := findKanelaAgentJar.value
   )
 
   private def scalaVersionSetting = Def.setting {
@@ -82,6 +84,13 @@ object KamonSbtUmbrella extends AutoPlugin {
 
   private def crossScalaVersionsSetting = Def.setting {
     if (sbtPlugin.value) Seq(scalaVersion.value) else Seq("2.10.7", "2.11.12", "2.12.8")
+  }
+
+  def findKanelaAgentJar = Def.task {
+    update.value.matching {
+      moduleFilter(organization = "io.kamon", name = "kanela-agent") &&
+        artifactFilter(`type` = "jar")
+    }.head
   }
 
   private def versionSetting = Def.setting {
