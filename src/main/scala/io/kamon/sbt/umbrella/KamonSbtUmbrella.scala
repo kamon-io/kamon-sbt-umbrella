@@ -52,7 +52,7 @@ object KamonSbtUmbrella extends AutoPlugin {
     version := versionSetting.value,
     isSnapshot := isSnapshotVersion(version.value),
     organization := "io.kamon",
-    releaseCrossBuild := true,
+    releaseCrossBuild := false,
     releaseProcess := kamonReleaseProcess.value,
     releaseSnapshotDependencies := releaseSnapshotDependenciesTask.value,
     releaseCommitMessage := releaseCommitMessageSetting.value,
