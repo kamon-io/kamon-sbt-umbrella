@@ -1,20 +1,24 @@
 package io.kamon.sbt.umbrella
 
+import java.util.Calendar
+
 import sbt.{Def, _}
 import Keys._
 import bintray.{Bintray, BintrayPlugin}
 import bintray.BintrayKeys.{bintrayOrganization, bintrayRepository}
 import sbtrelease.ReleasePlugin.autoImport._
+import de.heikoseeberger.sbtheader.HeaderPlugin.autoImport._
 import sbtrelease.ReleaseStateTransformations._
 
 import scala.sys.process.Process
 import com.lightbend.sbt.javaagent.JavaAgent.JavaAgentKeys.javaAgents
+import de.heikoseeberger.sbtheader.{HeaderPlugin, License}
 import sbt.plugins.JvmPlugin
 
 object KamonSbtUmbrella extends AutoPlugin {
 
   object autoImport {
-    val kanelaAgent    = "io.kamon"         %  "kanela-agent"    % "1.0.0-M1"
+    val kanelaAgent    = "io.kamon"         %  "kanela-agent"    % "1.0.0-M3"
     val hdrHistogram   = "org.hdrhistogram" %  "HdrHistogram"    % "2.1.10"
     val slf4jApi       = "org.slf4j"        %  "slf4j-api"       % "1.7.25"
     val slf4jnop       = "org.slf4j"        %  "slf4j-nop"       % "1.7.24"
@@ -35,7 +39,7 @@ object KamonSbtUmbrella extends AutoPlugin {
     def optionalScope(deps: ModuleID*): Seq[ModuleID] = deps map (_ % "compile,optional")
   }
 
-  override def requires: Plugins      = BintrayPlugin && JvmPlugin
+  override def requires: Plugins      = BintrayPlugin && JvmPlugin && HeaderPlugin
   override def trigger: PluginTrigger = allRequirements
 
   import autoImport._
@@ -45,11 +49,15 @@ object KamonSbtUmbrella extends AutoPlugin {
     version := versionSetting.value,
     isSnapshot := isSnapshotVersion(version.value),
     organization := "io.kamon",
+    organizationName := "The Kamon Project",
+    organizationHomepage := Some(url("https://kamon.io/")),
+    startYear := Some(2013),
+    headerLicense := licenseTemplate(startYear.value),
+    licenses += (("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
     releaseCrossBuild := true,
     releaseProcess := kamonReleaseProcess.value,
     releaseSnapshotDependencies := releaseSnapshotDependenciesTask.value,
     releaseCommitMessage := releaseCommitMessageSetting.value,
-    licenses += (("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
     scalacOptions := Seq(
       "-encoding",
       "utf8",
@@ -77,6 +85,29 @@ object KamonSbtUmbrella extends AutoPlugin {
     kanelaAgentVersion := "1.0.0-M2",
     kanelaAgentJar := findKanelaAgentJar.value
   )
+
+  private def licenseTemplate(startYear: Option[Int]) = {
+    val fromYear = startYear.getOrElse(2013)
+    val thisYear = Calendar.getInstance().get(Calendar.YEAR)
+
+    Some(License.Custom(
+      s"""
+        | ==========================================================================================
+        | Copyright © $fromYear-$thisYear The Kamon Project <https://kamon.io/>
+        |
+        | Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file
+        | except in compliance with the License. You may obtain a copy of the License at
+        |
+        |     http://www.apache.org/licenses/LICENSE-2.0
+        |
+        | Unless required by applicable law or agreed to in writing, software distributed under the
+        | License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+        | either express or implied. See the License for the specific language governing permissions
+        | and limitations under the License.
+        | ==========================================================================================
+      """.trim().stripMargin
+    ))
+  }
 
   private def scalaVersionSetting = Def.setting {
     if (sbtPlugin.value) scalaVersion.value else "2.12.8"
@@ -142,7 +173,7 @@ object KamonSbtUmbrella extends AutoPlugin {
     else "releases"
   }
 
-  def defaultPomExtra(projectName: String) = {
+  private def defaultPomExtra(projectName: String) = {
     <url>http://kamon.io</url>
     <scm>
       <url>git://github.com/kamon-io/{projectName}.git</url>
