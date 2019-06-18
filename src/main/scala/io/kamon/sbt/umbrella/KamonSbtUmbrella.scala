@@ -23,7 +23,7 @@ object KamonSbtUmbrella extends AutoPlugin {
     val slf4jApi       = "org.slf4j"        %  "slf4j-api"       % "1.7.25"
     val slf4jnop       = "org.slf4j"        %  "slf4j-nop"       % "1.7.24"
     val logbackClassic = "ch.qos.logback"   %  "logback-classic" % "1.2.3"
-    val scalatest      = "org.scalatest"    %% "scalatest"       % "3.0.5"
+    val scalatest      = "org.scalatest"    %% "scalatest"       % "3.0.8"
 
     val kanelaAgentVersion = settingKey[String]("Kanela Agent version")
     val kanelaAgentJar = taskKey[File]("Kanela Agent jar")
