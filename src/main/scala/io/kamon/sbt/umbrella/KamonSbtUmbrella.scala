@@ -110,11 +110,11 @@ object KamonSbtUmbrella extends AutoPlugin {
   }
 
   private def scalaVersionSetting = Def.setting {
-    if (sbtPlugin.value) scalaVersion.value else "2.12.8"
+    if (sbtPlugin.value) scalaVersion.value else "2.13.0"
   }
 
   private def crossScalaVersionsSetting = Def.setting {
-    if (sbtPlugin.value) Seq(scalaVersion.value) else Seq("2.11.12", "2.12.8")
+    if (sbtPlugin.value) Seq(scalaVersion.value) else Seq("2.11.12", "2.12.8", "2.13.0")
   }
 
   def findKanelaAgentJar = Def.task {
