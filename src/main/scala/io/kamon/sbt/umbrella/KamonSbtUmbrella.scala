@@ -18,7 +18,7 @@ import sbt.plugins.JvmPlugin
 object KamonSbtUmbrella extends AutoPlugin {
 
   object autoImport {
-    val kanelaAgent    = "io.kamon"         %  "kanela-agent"    % "1.0.0-M3"
+    val kanelaAgent    = "io.kamon"         %  "kanela-agent"    % "1.0.0"
     val hdrHistogram   = "org.hdrhistogram" %  "HdrHistogram"    % "2.1.10"
     val slf4jApi       = "org.slf4j"        %  "slf4j-api"       % "1.7.25"
     val slf4jnop       = "org.slf4j"        %  "slf4j-nop"       % "1.7.24"
@@ -28,9 +28,21 @@ object KamonSbtUmbrella extends AutoPlugin {
     val kanelaAgentVersion = settingKey[String]("Kanela Agent version")
     val kanelaAgentJar = taskKey[File]("Kanela Agent jar")
 
-    val noPublishing = Seq(publish := {}, publishLocal := {}, publishArtifact := false)
+    val noPublishing = Seq(
+      publish := {},
+      publishLocal := {},
+      publishArtifact := false
+    )
+
     val instrumentationSettings = Seq(
       javaAgents := Seq("io.kamon" % "kanela-agent" % kanelaAgentVersion.value % "runtime;test")
+    )
+
+    // More info here: https://www.scala-sbt.org/1.x/docs/Cross-Build.html#Note+about+sbt-release
+    val crossBuildingRootSettings = Seq(
+      crossScalaVersions := Nil,
+      publish / skip := true,
+      releaseCrossBuild := false
     )
 
     def compileScope(deps: ModuleID*): Seq[ModuleID]  = deps map (_ % "compile")
@@ -54,7 +66,7 @@ object KamonSbtUmbrella extends AutoPlugin {
     startYear := Some(2013),
     headerLicense := licenseTemplate(startYear.value),
     licenses += (("Apache-2.0", url("http://www.apache.org/licenses/LICENSE-2.0"))),
-    releaseCrossBuild := true,
+    releaseCrossBuild := false,
     releaseProcess := kamonReleaseProcess.value,
     releaseSnapshotDependencies := releaseSnapshotDependenciesTask.value,
     releaseCommitMessage := releaseCommitMessageSetting.value,
@@ -82,7 +94,7 @@ object KamonSbtUmbrella extends AutoPlugin {
     pomExtra := defaultPomExtra(name.value),
     publish := publishTask.value,
     resolvers += Resolver.bintrayRepo("kamon-io", "releases"),
-    kanelaAgentVersion := "1.0.0-M2",
+    kanelaAgentVersion := "1.0.0",
     kanelaAgentJar := findKanelaAgentJar.value
   )
 
