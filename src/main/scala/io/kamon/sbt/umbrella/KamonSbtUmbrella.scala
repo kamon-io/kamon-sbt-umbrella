@@ -18,7 +18,7 @@ import sbt.plugins.JvmPlugin
 object KamonSbtUmbrella extends AutoPlugin {
 
   object autoImport {
-    val kanelaAgent    = "io.kamon"         %  "kanela-agent"    % "1.0.0"
+    val kanelaAgent    = "io.kamon"         %  "kanela-agent"    % "1.0.2"
     val hdrHistogram   = "org.hdrhistogram" %  "HdrHistogram"    % "2.1.10"
     val slf4jApi       = "org.slf4j"        %  "slf4j-api"       % "1.7.25"
     val slf4jnop       = "org.slf4j"        %  "slf4j-nop"       % "1.7.24"
@@ -94,7 +94,7 @@ object KamonSbtUmbrella extends AutoPlugin {
     pomExtra := defaultPomExtra(name.value),
     publish := publishTask.value,
     resolvers += Resolver.bintrayRepo("kamon-io", "releases"),
-    kanelaAgentVersion := "1.0.0",
+    kanelaAgentVersion := "1.0.2",
     kanelaAgentJar := findKanelaAgentJar.value
   )
 
