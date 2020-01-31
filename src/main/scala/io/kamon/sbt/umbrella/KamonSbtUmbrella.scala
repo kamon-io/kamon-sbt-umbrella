@@ -80,10 +80,11 @@ object KamonSbtUmbrella extends AutoPlugin {
       "-language:postfixOps",
       "-language:implicitConversions",
       "-Xlog-reflective-calls",
-      "-Ywarn-dead-code"
+      "-Ywarn-dead-code",
+      "-target:jvm-1.8"
     ),
     javacOptions := Seq(
-      "-Xlint:-options"
+      "-Xlint:-options", "-source", "1.8", "-target", "1.8"
     ),
     bintrayOrganization := Some("kamon-io"),
     bintrayRepository := bintrayRepositorySetting.value,
