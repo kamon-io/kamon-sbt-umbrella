@@ -77,7 +77,6 @@ object KamonSbtUmbrella extends AutoPlugin {
     crossPaths := true,
     pomIncludeRepository := { _ => false },
     publishArtifact in Test := false,
-    publishMavenStyle := publishMavenStyleSetting.value,
     pomExtra := defaultPomExtra(name.value),
     publish := publishTask.value,
     resolvers += Resolver.bintrayRepo("kamon-io", "releases"),
